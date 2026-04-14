@@ -517,12 +517,69 @@
         </div>
     </div>
 
+    <!-- Modal تعديل الملف الشخصي - تم تعديله لإضافة رفع الصور -->
     <div id="editProfileModal" class="modal-overlay">
-        <div class="modal-content"><div style="text-align: center; margin-bottom: 20px;"><h3 style="font-weight: 600;">تعديل الملف الشخصي</h3></div>
-        <input type="text" id="editName" class="chat-input" style="width: 100%; margin-bottom: 12px;" placeholder="الاسم">
-        <textarea id="editBio" class="chat-input" style="width: 100%; min-height: 80px; margin-bottom: 12px;" placeholder="السيرة الذاتية..."></textarea>
-        <input type="url" id="editWebsite" class="chat-input" style="width: 100%; margin-bottom: 12px;" placeholder="رابط الموقع">
-        <div style="display: flex; gap: 10px;"><button class="profile-btn" onclick="closeEditProfileModal()">إلغاء</button><button class="profile-btn profile-btn-primary" onclick="saveProfileEdit()">حفظ</button></div></div>
+        <div class="compose-content" style="max-width: 450px;">
+            <div class="compose-header">
+                <h3 style="font-weight: 600;">تعديل الملف الشخصي</h3>
+                <button onclick="closeEditProfileModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+            
+            <div class="compose-area" style="padding: 16px;">
+                <!-- صورة الغلاف -->
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">صورة الغلاف</label>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <label style="cursor: pointer; background: #6c3ce1; color: white; padding: 8px 16px; border-radius: 30px; font-size: 13px;">
+                            <i class="fas fa-image"></i> اختر صورة الغلاف
+                            <input type="file" accept="image/*" style="display: none;" onchange="uploadCover(this)">
+                        </label>
+                        <span id="coverPreviewText" style="font-size: 12px; color: #8e8e9e;"></span>
+                    </div>
+                </div>
+                
+                <!-- الصورة الشخصية -->
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">الصورة الشخصية</label>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div id="editAvatarPreview" style="width: 70px; height: 70px; border-radius: 50%; background: #f0ebff; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                            <i class="fas fa-user text-3xl text-gray-400"></i>
+                        </div>
+                        <label style="cursor: pointer; background: #6c3ce1; color: white; padding: 8px 16px; border-radius: 30px; font-size: 13px;">
+                            <i class="fas fa-camera"></i> تغيير الصورة
+                            <input type="file" accept="image/*" style="display: none;" onchange="uploadAvatar(this)">
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- الاسم -->
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px;">اسم المستخدم</label>
+                    <input type="text" id="editName" class="chat-input" style="width: 100%;" placeholder="اسم المستخدم">
+                </div>
+                
+                <!-- السيرة الذاتية -->
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px;">السيرة الذاتية</label>
+                    <textarea id="editBio" class="chat-input" style="width: 100%; min-height: 70px;" placeholder="اكتب شيئاً عن نفسك..."></textarea>
+                </div>
+                
+                <!-- الموقع الإلكتروني -->
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px;">الموقع الإلكتروني</label>
+                    <input type="url" id="editWebsite" class="chat-input" style="width: 100%;" placeholder="https://...">
+                </div>
+            </div>
+            
+            <div style="padding: 16px; border-top: 1px solid #e0d5ff; display: flex; gap: 10px;">
+                <button onclick="saveProfileEdit()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #6c3ce1, #a78bfa); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer;">
+                    <i class="fas fa-save"></i> حفظ التغييرات
+                </button>
+                <button onclick="closeEditProfileModal()" style="flex: 1; padding: 12px; background: #f0ebff; color: #1a1a2e; border: none; border-radius: 12px; font-weight: 600; cursor: pointer;">
+                    إلغاء
+                </button>
+            </div>
+        </div>
     </div>
 
     <div id="chatPanel" class="chat-panel">
