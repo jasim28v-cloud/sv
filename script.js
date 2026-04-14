@@ -486,6 +486,8 @@ async function loadProfileData(userId) {
     
     if (user.coverUrl) {
         document.getElementById('profileCover').style.backgroundImage = `url(${user.coverUrl})`;
+    } else {
+        document.getElementById('profileCover').style.backgroundImage = '';
     }
     
     const followersCount = user.followers ? Object.keys(user.followers).length : 0;
@@ -593,11 +595,88 @@ function openEditProfileModal() {
     document.getElementById('editName').value = currentUserData?.username || '';
     document.getElementById('editBio').value = currentUserData?.bio || '';
     document.getElementById('editWebsite').value = currentUserData?.website || '';
+    
+    // ✅ إضافة: عرض الصورة الحالية إن وجدت
+    const avatarPreview = document.getElementById('editAvatarPreview');
+    if (currentUserData?.avatarUrl) {
+        avatarPreview.innerHTML = `<img src="${currentUserData.avatarUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+    } else {
+        avatarPreview.innerHTML = `<i class="fas fa-user text-3xl text-gray-400"></i>`;
+    }
+    
+    // إعادة تعيين معاينة الغلاف
+    document.getElementById('coverPreviewText').innerHTML = '';
+    
     document.getElementById('editProfileModal').classList.add('open');
 }
 
 function closeEditProfileModal() {
     document.getElementById('editProfileModal').classList.remove('open');
+    // تنظيف المتغيرات المؤقتة
+    window.tempAvatarUrl = null;
+    window.tempCoverUrl = null;
+}
+
+// ✅ دوال رفع الصور الشخصية والغلاف
+async function uploadAvatar(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', UPLOAD_PRESET);
+    
+    const preview = document.getElementById('editAvatarPreview');
+    preview.innerHTML = '<i class="fas fa-spinner fa-spin text-2xl text-[#6c3ce1]"></i>';
+    
+    try {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        
+        // حفظ الرابط مؤقتاً
+        window.tempAvatarUrl = data.secure_url;
+        
+        // عرض المعاينة
+        preview.innerHTML = `<img src="${data.secure_url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        showToast('✅ تم رفع الصورة، احفظ التغييرات لتطبيقها');
+    } catch (error) {
+        console.error('Upload error:', error);
+        preview.innerHTML = `<i class="fas fa-exclamation-triangle text-red-500"></i>`;
+        showToast('❌ فشل رفع الصورة');
+    }
+}
+
+async function uploadCover(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', UPLOAD_PRESET);
+    
+    const preview = document.getElementById('coverPreviewText');
+    preview.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الرفع...';
+    
+    try {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        
+        // حفظ الرابط مؤقتاً
+        window.tempCoverUrl = data.secure_url;
+        
+        preview.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> تم رفع الغلاف ✓';
+        showToast('✅ تم رفع الغلاف، احفظ التغييرات لتطبيقه');
+    } catch (error) {
+        console.error('Upload error:', error);
+        preview.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> فشل الرفع';
+        showToast('❌ فشل رفع الغلاف');
+    }
 }
 
 async function saveProfileEdit() {
@@ -610,21 +689,40 @@ async function saveProfileEdit() {
         return;
     }
     
-    await db.ref('users/' + currentUser.uid).update({
+    const updates = {
         username: username,
         bio: bio,
         website: website
-    });
+    };
+    
+    // ✅ إضافة: حفظ الصورة الشخصية والغلاف
+    if (window.tempAvatarUrl) {
+        updates.avatarUrl = window.tempAvatarUrl;
+        currentUserData.avatarUrl = window.tempAvatarUrl;
+    }
+    if (window.tempCoverUrl) {
+        updates.coverUrl = window.tempCoverUrl;
+        currentUserData.coverUrl = window.tempCoverUrl;
+    }
+    
+    await db.ref('users/' + currentUser.uid).update(updates);
     
     currentUserData.username = username;
     currentUserData.bio = bio;
     currentUserData.website = website;
+    
+    // تنظيف المتغيرات المؤقتة
+    window.tempAvatarUrl = null;
+    window.tempCoverUrl = null;
     
     closeEditProfileModal();
     
     if (currentProfileUser === currentUser.uid) {
         await loadProfileData(currentUser.uid);
     }
+    
+    // ✅ تحديث قائمة المستخدمين العامة
+    await loadAllUsers();
     
     showToast('✅ تم حفظ التغييرات');
 }
@@ -853,6 +951,7 @@ function closeChat() {
     currentChatUserId = null;
 }
 
+// ✅ تم تعديل هذه الدالة - إضافة زر نسخ النص
 async function loadPrivateMessages(otherUserId) {
     const container = document.getElementById('chatMessages');
     const chatId = getChatId(currentUser.uid, otherUserId);
@@ -872,7 +971,10 @@ async function loadPrivateMessages(otherUserId) {
                 <div class="message-bubble ${isSent ? 'sent' : ''}">
                     ${msg.type === 'text' ? msg.text : ''}
                     ${msg.type === 'image' ? `<img src="${msg.imageUrl}" class="message-image" onclick="window.open('${msg.imageUrl}')">` : ''}
-                    <div class="message-status">${time} ${isSent ? '✓✓' : ''}</div>
+                    <div class="message-status">
+                        ${time} ${isSent ? '✓✓' : ''}
+                        ${msg.type === 'text' ? `<i class="fas fa-copy" style="margin-right: 8px; cursor: pointer; opacity: 0.7;" onclick="copyMessageText('${msg.text.replace(/'/g, "\\'")}')" title="نسخ النص"></i>` : ''}
+                    </div>
                 </div>
             </div>
         `;
@@ -883,6 +985,15 @@ async function loadPrivateMessages(otherUserId) {
     }
     
     container.scrollTop = container.scrollHeight;
+}
+
+// ✅ دالة نسخ النص
+function copyMessageText(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('📋 تم نسخ النص');
+    }).catch(() => {
+        showToast('❌ فشل النسخ');
+    });
 }
 
 async function sendChatMessage() {
