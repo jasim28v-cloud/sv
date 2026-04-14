@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>NEXUS | منصة اجتماعية عصرية</title>
+    <meta name="theme-color" content="#6c3ce1">
+    
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://www.gstatic.com">
+    <link rel="preconnect" href="https://ckco-f3c2f-default-rtdb.firebaseio.com">
+    <link rel="preconnect" href="https://api.cloudinary.com">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.22.0.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f5f0ff;
+            color: #1a1a2e;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        body.dark-mode { background: #0a0a1a; color: #e0e0ff; }
+        body.dark-mode .post-card { background: #0a0a1a; border-bottom-color: #2a1a4e; }
+        body.dark-mode .top-bar { background: #0a0a1a; border-bottom-color: #2a1a4e; }
+        body.dark-mode .auth-card { background: #0a0a1a; border-color: #3a2a5e; }
+        body.dark-mode .auth-card input { background: #1a1a3a; border-color: #3a2a5e; color: white; }
+        body.dark-mode .bottom-nav { background: #0a0a1a; border-top-color: #2a1a4e; }
+        body.dark-mode .chat-panel { background: #0a0a1a; }
+        body.dark-mode .message-bubble { background: #2a1a4e; color: white; }
+        body.dark-mode .compose-content { background: #0a0a1a; border: 1px solid #2a1a4e; }
+        body.dark-mode .profile-cover { border-bottom: 1px solid #2a1a4e; }
+        body.dark-mode .trending-sidebar { background: #0f0f2a; border-left-color: #2a1a4e; }
+        body.dark-mode .poll-container { background: #1a1a3a; }
+        body.dark-mode .poll-option { background: #2a2a4a; }
+        body.dark-mode .quote-post { background: #1a1a3a; }
+        body.dark-mode .dnd-toggle { background: #1a1a3a; }
+        body.dark-mode .quick-emojis { background: #0a0a1a; border-top-color: #2a1a4e; }
+        body.dark-mode .chat-input { background: #1a1a3a; border-color: #2a1a4e; color: white; }
+        body.dark-mode .profile-tab.active { color: #ffffff; border-bottom-color: #a78bfa; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes nexusGlow { 0% { text-shadow: 0 0 0px #6c3ce1; } 50% { text-shadow: 0 0 20px #a78bfa; } 100% { text-shadow: 0 0 0px #6c3ce1; } }
+        @keyframes heartFloat { 0% { transform: scale(0.5) translateY(0); opacity: 1; } 100% { transform: scale(1.5) translateY(-50px); opacity: 0; } }
+
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        .post-card { animation: fadeIn 0.2s ease-out; transition: transform 0.15s; cursor: pointer; }
+        .post-card:active { transform: scale(0.99); }
+        
+        button, .nav-item, .post-action, .profile-btn, .stat-item, .trending-item, .follower-item {
+            touch-action: manipulation;
+            transition: transform 0.1s;
+        }
+        button:active, .nav-item:active, .post-action:active, .profile-btn:active {
+            transform: scale(0.95);
+        }
+
+        .logo-nexus {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #6c3ce1, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            cursor: pointer;
+            animation: nexusGlow 2s infinite;
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+        .post-video {
+            width: 100%;
+            max-height: 500px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        .video-controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            border-radius: 30px;
+            padding: 6px 12px;
+            display: flex;
+            gap: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .video-container:hover .video-controls {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .video-controls button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+        }
+        .video-controls button:hover { color: #a78bfa; }
+
+        .image-viewer-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: 0.2s;
+        }
+        .image-viewer-modal.open { opacity: 1; visibility: visible; }
+        .image-viewer-modal img { max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 16px; }
+        .image-viewer-close { position: absolute; top: 20px; right: 20px; font-size: 32px; color: white; cursor: pointer; }
+        .image-viewer-prev, .image-viewer-next {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            font-size: 32px;
+            cursor: pointer;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+        .image-viewer-prev { left: 20px; }
+        .image-viewer-next { right: 20px; }
+
+        .poll-container { background: #f0ebff; border-radius: 16px; padding: 12px; margin: 12px 0; }
+        .poll-option { background: white; border-radius: 12px; padding: 10px; margin: 8px 0; cursor: pointer; transition: 0.15s; position: relative; overflow: hidden; }
+        .poll-option:hover { background: #6c3ce120; }
+        .poll-option.selected { background: #6c3ce1; color: white; }
+        .poll-progress { position: absolute; left: 0; top: 0; height: 100%; background: #6c3ce120; transition: width 0.2s; z-index: 0; }
+        .poll-option-text { position: relative; z-index: 1; display: flex; justify-content: space-between; }
+
+        .sticker-picker {
+            position: absolute;
+            bottom: 70px;
+            left: 20px;
+            background: white;
+            border-radius: 20px;
+            padding: 12px;
+            display: none;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .sticker-picker span { font-size: 28px; cursor: pointer; padding: 4px; }
+        .sticker-picker span:hover { transform: scale(1.1); }
+
+        .schedule-picker { display: none; margin-top: 12px; padding: 12px; background: #f0ebff; border-radius: 12px; }
+        .quote-post { background: #f0ebff; border-radius: 16px; padding: 12px; margin: 8px 0; border-right: 4px solid #6c3ce1; }
+        .last-seen { font-size: 10px; color: #8e8e9e; margin-top: 2px; }
+        .quick-emojis { display: flex; gap: 8px; padding: 8px 16px; border-top: 1px solid #dbdbdb; background: white; }
+        .quick-emojis span { font-size: 20px; cursor: pointer; }
+
+        .heart-animation { position: fixed; font-size: 48px; color: #6c3ce1; pointer-events: none; z-index: 1000; animation: heartFloat 0.6s ease-out forwards; }
+
+        .auth-screen { position: fixed; inset: 0; z-index: 1000; background: #f5f0ff; display: flex; align-items: center; justify-content: center; }
+        body.dark-mode .auth-screen { background: #0a0a1a; }
+        .auth-card { background: #ffffff; border-radius: 32px; padding: 40px 32px; width: 90%; max-width: 440px; text-align: center; box-shadow: 0 10px 40px rgba(108, 60, 225, 0.15); }
+        .auth-card h1 { font-size: 48px; font-weight: 800; margin-bottom: 28px; background: linear-gradient(135deg, #6c3ce1, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .auth-card input { width: 100%; padding: 14px 18px; margin: 8px 0; border-radius: 12px; background: #f5f5f5; border: 1px solid #e0e0e0; font-size: 15px; }
+        .auth-card input:focus { border-color: #6c3ce1; outline: none; }
+        .auth-card button { width: 100%; padding: 12px; margin-top: 16px; background: linear-gradient(135deg, #6c3ce1, #a78bfa); border: none; border-radius: 12px; color: white; font-weight: 600; cursor: pointer; transition: transform 0.1s; }
+        .auth-card button:active { transform: scale(0.98); }
+        .auth-form { display: none; }
+        .auth-form.active { display: block; }
+        .error-msg { color: #ef4444; font-size: 12px; margin-top: 8px; text-align: center; }
+        .auth-link { margin-top: 28px; color: #8e8e9e; font-size: 13px; }
+        .auth-link a { color: #6c3ce1; text-decoration: none; font-weight: 600; cursor: pointer; }
+
+        #mainApp { display: none; min-height: 100vh; padding-bottom: 70px; }
+
+        .top-bar { position: sticky; top: 0; background: #ffffff; border-bottom: 1px solid #e0d5ff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+        .top-icons { display: flex; gap: 22px; align-items: center; }
+        .top-icon { font-size: 24px; color: #1a1a2e; cursor: pointer; transition: transform 0.1s; }
+        .top-icon:active { transform: scale(0.95); }
+        body.dark-mode .top-icon { color: #e0e0ff; }
+
+        .main-layout { display: flex; max-width: 1200px; margin: 0 auto; }
+        .feed-container { flex: 1; max-width: 600px; margin: 0 auto; padding: 0 0 20px; }
+        .trending-sidebar { width: 280px; position: sticky; top: 70px; height: calc(100vh - 70px); overflow-y: auto; padding: 16px; background: #ffffff; border-left: 1px solid #e0d5ff; margin-right: 20px; border-radius: 16px; display: none; }
+        @media (min-width: 1024px) { .trending-sidebar { display: block; } }
+        .trending-item { padding: 12px; border-bottom: 1px solid #e0d5ff; cursor: pointer; transition: 0.15s; }
+        .trending-item:hover { background: #f0ebff; border-radius: 12px; }
+        .trending-hashtag { font-weight: 600; color: #6c3ce1; }
+
+        .profile-cover { width: 100%; height: 200px; background: linear-gradient(135deg, #6c3ce1, #a78bfa); background-size: cover; background-position: center; cursor: pointer; }
+        .profile-avatar-wrapper { position: relative; margin-top: -60px; padding: 0 16px; }
+        .profile-avatar-large { width: 120px; height: 120px; border-radius: 50%; overflow: hidden; border: 4px solid #ffffff; background: linear-gradient(135deg, #6c3ce1, #a78bfa); cursor: pointer; }
+        .profile-info { padding: 12px 16px 16px; }
+        .profile-name { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .verified-badge { color: #6c3ce1; font-size: 18px; }
+        .profile-bio { font-size: 14px; color: #8e8e9e; margin-top: 4px; }
+        .profile-stats { display: flex; gap: 30px; margin-top: 12px; padding: 12px 0; border-top: 1px solid #e0d5ff; border-bottom: 1px solid #e0d5ff; }
+        .stat-item { text-align: center; cursor: pointer; }
+        .stat-number { font-weight: 700; font-size: 18px; }
+
+        .profile-buttons { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+        .profile-btn { flex: 1; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; border: 1px solid #e0d5ff; background: none; transition: transform 0.1s; }
+        .profile-btn:active { transform: scale(0.97); }
+        .profile-btn-primary { background: linear-gradient(135deg, #6c3ce1, #a78bfa); color: white; border: none; }
+        .profile-tabs { display: flex; margin-top: 8px; }
+        .profile-tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; font-size: 14px; font-weight: 600; color: #8e8e9e; background: none; border: none; transition: transform 0.1s; }
+        .profile-tab:active { transform: scale(0.97); }
+        .profile-tab.active { color: #1a1a2e; border-bottom: 2px solid #6c3ce1; }
+        .profile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 4px; }
+        .grid-item { aspect-ratio: 1; overflow: hidden; cursor: pointer; background: #f0ebff; position: relative; transition: transform 0.1s; }
+        .grid-item:active { transform: scale(0.98); }
+        .grid-item img, .grid-item video { width: 100%; height: 100%; object-fit: cover; }
+        .grid-item-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; display: flex; justify-content: center; gap: 16px; padding: 4px; font-size: 12px; }
+
+        .post-card { background: #ffffff; border-bottom: 1px solid #e0d5ff; margin-bottom: 0; }
+        .post-card.pinned { border-right: 3px solid #6c3ce1; }
+        .pinned-badge { position: absolute; top: 12px; left: 12px; background: #6c3ce1; color: white; padding: 4px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; z-index: 10; }
+        .post-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
+        .post-user-info { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .post-avatar { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, #6c3ce1, #a78bfa); }
+        .post-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .post-username { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 4px; }
+        .post-time { font-size: 10px; color: #8e8e9e; margin-top: 2px; }
+        .post-menu { background: none; border: none; font-size: 18px; cursor: pointer; color: #1a1a2e; transition: transform 0.1s; }
+        .post-menu:active { transform: scale(0.9); }
+        body.dark-mode .post-menu { color: #e0e0ff; }
+        .post-actions { display: flex; gap: 20px; padding: 8px 16px; }
+        .post-action { background: none; border: none; font-size: 24px; cursor: pointer; color: #1a1a2e; transition: transform 0.1s; }
+        .post-action:active { transform: scale(0.9); }
+        .post-action.active { color: #6c3ce1; }
+        .post-likes { font-weight: 600; font-size: 14px; padding: 0 16px 4px; }
+        .post-caption { padding: 0 16px 8px; font-size: 14px; }
+        .post-caption span { font-weight: 600; cursor: pointer; }
+        .post-hashtags { color: #6c3ce1; cursor: pointer; }
+        .post-comments { padding: 0 16px 8px; font-size: 14px; color: #8e8e9e; cursor: pointer; }
+        .post-views { padding: 0 16px 8px; font-size: 11px; color: #8e8e9e; }
+
+        .compose-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.2s; }
+        .compose-modal.open { opacity: 1; visibility: visible; }
+        .compose-content { background: #ffffff; border-radius: 20px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+        .compose-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid #e0d5ff; }
+        .compose-area { padding: 16px; }
+        .compose-textarea { width: 100%; min-height: 120px; border: none; resize: none; font-size: 16px; outline: none; font-family: inherit; }
+        .media-preview { margin: 12px 0; display: none; position: relative; }
+        .media-preview img, .media-preview video { max-height: 250px; border-radius: 12px; width: 100%; object-fit: cover; }
+        .compose-tools { display: flex; gap: 16px; padding: 12px 0; border-top: 1px solid #e0d5ff; }
+        .compose-tool { background: none; border: none; font-size: 24px; cursor: pointer; color: #1a1a2e; transition: transform 0.1s; }
+        .compose-tool:active { transform: scale(0.95); }
+
+        .chat-panel { position: fixed; inset: 0; background: #ffffff; z-index: 400; transform: translateX(100%); transition: 0.25s; display: flex; flex-direction: column; }
+        .chat-panel.open { transform: translateX(0); }
+        .chat-header { padding: 12px 16px; border-bottom: 1px solid #e0d5ff; display: flex; justify-content: space-between; align-items: center; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .chat-message { display: flex; gap: 8px; max-width: 80%; }
+        .chat-message.sent { align-self: flex-end; flex-direction: row-reverse; }
+        .message-bubble { background: #f0ebff; padding: 10px 14px; border-radius: 20px; font-size: 14px; }
+        .message-bubble.sent { background: linear-gradient(135deg, #6c3ce1, #a78bfa); color: white; }
+        .message-status { font-size: 10px; color: #8e8e9e; margin-top: 4px; }
+        .typing-indicator { font-size: 12px; color: #8e8e9e; padding: 8px 16px; font-style: italic; }
+        .chat-input-area { display: flex; gap: 12px; padding: 12px; border-top: 1px solid #e0d5ff; align-items: center; }
+        .chat-input { flex: 1; padding: 10px 14px; border: 1px solid #e0d5ff; border-radius: 25px; outline: none; font-size: 14px; }
+        .chat-send-btn, .chat-image-btn, .chat-audio-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: #6c3ce1; transition: transform 0.1s; }
+        .chat-send-btn:active, .chat-image-btn:active, .chat-audio-btn:active { transform: scale(0.9); }
+
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #ffffff; border-top: 1px solid #e0d5ff; display: flex; justify-content: space-around; padding: 8px 0 12px; z-index: 100; }
+        .nav-item { background: none; border: none; font-size: 24px; color: #1a1a2e; cursor: pointer; padding: 6px; transition: transform 0.1s; }
+        .nav-item:active { transform: scale(0.9); }
+        .nav-item.active { color: #6c3ce1; }
+
+        .admin-panel { position: fixed; inset: 0; background: #ffffff; z-index: 500; transform: translateX(100%); transition: 0.25s; overflow-y: auto; }
+        .admin-panel.open { transform: translateX(0); }
+        .admin-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px; }
+        .admin-stat-card { background: linear-gradient(135deg, #6c3ce1, #a78bfa); padding: 16px; border-radius: 16px; text-align: center; color: white; }
+        .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #e0d5ff; }
+        .admin-delete-btn, .admin-mute-btn, .admin-verify-btn { padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer; margin: 0 4px; font-size: 12px; transition: transform 0.1s; }
+        .admin-delete-btn:active, .admin-mute-btn:active, .admin-verify-btn:active { transform: scale(0.95); }
+        .admin-delete-btn { background: #ef4444; color: white; }
+        .admin-mute-btn { background: #f59e0b; color: white; }
+        .admin-verify-btn { background: #10b981; color: white; }
+
+        .bad-words-manager {
+            background: #f0ebff;
+            border-radius: 16px;
+            padding: 16px;
+            margin: 16px;
+        }
+        body.dark-mode .bad-words-manager { background: #1a1a3a; }
+        .bad-word-tag {
+            display: inline-block;
+            background: #6c3ce1;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            margin: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .bad-word-tag:hover { background: #ef4444; transform: scale(0.95); }
+        .add-bad-word-input {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .add-bad-word-input input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid #e0d5ff;
+            background: white;
+        }
+        body.dark-mode .add-bad-word-input input { background: #2a2a4a; border-color: #2a1a4e; color: white; }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 600; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.2s; }
+        .modal-overlay.open { opacity: 1; visibility: visible; }
+        .modal-content { background: #ffffff; border-radius: 20px; padding: 24px; width: 90%; max-width: 400px; }
+        .report-reason { padding: 10px; margin: 5px 0; background: #f0ebff; border-radius: 8px; cursor: pointer; transition: 0.1s; }
+        .report-reason:active { transform: scale(0.98); }
+        .report-reason.selected { background: #6c3ce1; color: white; }
+
+        .toggle-switch { width: 50px; height: 24px; background: #e0d5ff; border-radius: 24px; cursor: pointer; position: relative; transition: 0.15s; }
+        .toggle-switch.active { background: #6c3ce1; }
+        .toggle-switch::after { content: ''; width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; top: 2px; left: 4px; transition: 0.15s; }
+        .toggle-switch.active::after { left: 26px; }
+        .dnd-toggle { background: #f0ebff; border-radius: 12px; margin-top: 8px; display: flex; justify-content: space-between; padding: 12px; }
+
+        .video-call-modal { position: fixed; inset: 0; background: #000; z-index: 700; display: flex; flex-direction: column; opacity: 0; visibility: hidden; }
+        .video-call-modal.open { opacity: 1; visibility: visible; }
+        #remoteVideo { flex: 1; background: #000; }
+        #localVideo { width: 120px; height: 180px; position: absolute; bottom: 20px; right: 20px; background: #1a1a3a; border-radius: 16px; border: 2px solid #6c3ce1; }
+        .call-controls { padding: 20px; display: flex; justify-content: center; }
+        .call-end-btn { background: #ef4444; color: white; border: none; width: 60px; height: 60px; border-radius: 50%; font-size: 24px; cursor: pointer; transition: transform 0.1s; }
+        .call-end-btn:active { transform: scale(0.95); }
+
+        #customToast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #1a1a2e; color: white; padding: 10px 20px; border-radius: 40px; z-index: 1100; font-size: 13px; opacity: 0; transition: 0.2s; pointer-events: none; white-space: nowrap; }
+        .follower-item { display: flex; align-items: center; gap: 12px; padding: 12px; cursor: pointer; transition: 0.15s; border-bottom: 1px solid #e0d5ff; }
+        .follower-item:active { transform: scale(0.98); }
+        .follower-item:hover { background: #f0ebff; }
+        .message-image { max-width: 200px; border-radius: 12px; margin-top: 8px; cursor: pointer; }
+        .audio-player { margin-top: 8px; height: 36px; }
+        .recording-indicator { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #6c3ce1; color: white; padding: 8px 16px; border-radius: 40px; z-index: 1100; }
+        .notification-badge { position: absolute; top: -6px; right: -10px; background: #6c3ce1; color: white; font-size: 9px; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; }
+        
+        .loading { text-align: center; padding: 60px 20px; }
+        .spinner { width: 32px; height: 32px; border: 2px solid #e0d5ff; border-top-color: #6c3ce1; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+        
+        #initLoader { position: fixed; inset: 0; background: #f5f0ff; z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; transition: opacity 0.3s; }
+        body.dark-mode #initLoader { background: #0a0a1a; }
+        
+        .load-more-btn { text-align: center; padding: 16px; margin: 16px; background: #f0ebff; border-radius: 30px; cursor: pointer; transition: 0.15s; }
+        .load-more-btn:active { transform: scale(0.98); background: #e0d5ff; }
+        body.dark-mode .load-more-btn { background: #1a1a3a; color: white; }
+    </style>
+</head>
+<body>
+
+<div id="initLoader">
+    <div class="spinner"></div>
+    <div style="margin-top: 16px; color: #6c3ce1; font-weight: 500;">جاري تحميل NEXUS...</div>
+</div>
+
+<div id="authScreen" class="auth-screen">
+    <div class="auth-card">
+        <h1>NEXUS</h1>
+        <div id="loginForm" class="auth-form active">
+            <div style="text-align: right; margin-bottom: 20px;">
+                <h2 style="font-size: 22px; font-weight: 700;">تسجيل الدخول</h2>
+                <p style="color: #8e8e9e; margin-top: 4px; font-size: 13px;">مرحباً بعودتك</p>
+            </div>
+            <input type="email" id="loginEmail" placeholder="البريد الإلكتروني">
+            <input type="password" id="loginPassword" placeholder="كلمة المرور">
+            <button onclick="login()">تسجيل الدخول</button>
+            <div id="loginMsg" class="error-msg"></div>
+            <div class="auth-link">ليس لديك حساب؟ <a onclick="switchAuth('register')">إنشاء حساب</a></div>
+        </div>
+        <div id="registerForm" class="auth-form">
+            <div style="text-align: right; margin-bottom: 20px;">
+                <h2 style="font-size: 22px; font-weight: 700;">إنشاء حساب</h2>
+                <p style="color: #8e8e9e; margin-top: 4px; font-size: 13px;">انضم إلى NEXUS اليوم</p>
+            </div>
+            <input type="text" id="regName" placeholder="اسم المستخدم">
+            <input type="email" id="regEmail" placeholder="البريد الإلكتروني">
+            <input type="password" id="regPass" placeholder="كلمة المرور">
+            <input type="password" id="regConfirmPass" placeholder="تأكيد كلمة المرور">
+            <button onclick="register()">إنشاء حساب</button>
+            <div id="regMsg" class="error-msg"></div>
+            <div class="auth-link">لديك حساب بالفعل؟ <a onclick="switchAuth('login')">تسجيل الدخول</a></div>
+        </div>
+    </div>
+</div>
+
+<div id="mainApp">
+    <div class="top-bar">
+        <div class="logo-nexus" onclick="goToHome()">NEXUS</div>
+        <div class="top-icons">
+            <i class="fas fa-paper-plane top-icon" onclick="openConversations()"></i>
+            <i class="fas fa-heart top-icon" onclick="openSavedPosts()"></i>
+            <i class="fas fa-moon top-icon" onclick="toggleTheme()" id="themeToggle"></i>
+            <i class="fas fa-arrow-right-from-bracket top-icon" onclick="logout()" style="color: #6c3ce1;"></i>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div id="feedContainer" class="feed-container">
+            <div class="loading"><div class="spinner"></div><span>جاري التحميل...</span></div>
+        </div>
+        <div class="trending-sidebar" id="trendingSidebar">
+            <div style="font-weight: 700; margin-bottom: 16px; font-size: 18px;">🔥 الترند</div>
+            <div id="trendingList"></div>
+            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e0d5ff;">
+                <div style="font-weight: 600; margin-bottom: 12px;">⚙️ الإعدادات السريعة</div>
+                <div class="dnd-toggle"><span>📖 وضع القراءة</span><div class="toggle-switch" id="readModeToggle" onclick="toggleReadMode()"></div></div>
+                <div class="dnd-toggle"><span>🔕 عدم الإزعاج</span><div class="toggle-switch" id="dndToggle" onclick="toggleDoNotDisturb()"></div></div>
+                <div class="dnd-toggle"><span>🔒 إخفاء الإعجابات</span><div class="toggle-switch" id="hideLikesToggle" onclick="toggleHideLikes()"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <button class="nav-item active" onclick="switchTab('home')"><i class="fas fa-house-chimney"></i></button>
+        <button class="nav-item" onclick="openSearch()"><i class="fas fa-magnifying-glass"></i></button>
+        <button class="nav-item" onclick="openCompose()"><i class="fas fa-feather"></i></button>
+        <button class="nav-item" onclick="openNotifications()"><i class="fas fa-bell"></i></button>
+        <button class="nav-item" onclick="openMyProfile()"><i class="fas fa-user-astronaut"></i></button>
+    </div>
+
+    <div id="composeModal" class="compose-modal">
+        <div class="compose-content">
+            <div class="compose-header"><h3 style="font-weight: 600;">إنشاء منشور جديد</h3><button onclick="closeCompose()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button></div>
+            <div class="compose-area">
+                <textarea id="postText" class="compose-textarea" placeholder="اكتب منشوراً..."></textarea>
+                <div id="mediaPreview" class="media-preview"></div>
+                <div class="quick-emojis">
+                    <span onclick="addEmojiToPost('😊')">😊</span><span onclick="addEmojiToPost('😂')">😂</span><span onclick="addEmojiToPost('❤️')">❤️</span>
+                    <span onclick="addEmojiToPost('🔥')">🔥</span><span onclick="addEmojiToPost('🎉')">🎉</span><span onclick="addEmojiToPost('😢')">😢</span>
+                    <span onclick="addEmojiToPost('😮')">😮</span><span onclick="openStickerPicker()">😀</span>
+                </div>
+                <div id="stickerPicker" class="sticker-picker">
+                    <span onclick="addStickerToPost('😊')">😊</span><span onclick="addStickerToPost('😂')">😂</span><span onclick="addStickerToPost('❤️')">❤️</span>
+                    <span onclick="addStickerToPost('🔥')">🔥</span><span onclick="addStickerToPost('🎉')">🎉</span><span onclick="addStickerToPost('😢')">😢</span>
+                    <span onclick="addStickerToPost('😮')">😮</span><span onclick="addStickerToPost('😍')">😍</span><span onclick="addStickerToPost('🥳')">🥳</span>
+                    <span onclick="addStickerToPost('🤔')">🤔</span><span onclick="addStickerToPost('💯')">💯</span><span onclick="addStickerToPost('✨')">✨</span>
+                </div>
+                <div class="compose-tools">
+                    <button class="compose-tool" onclick="document.getElementById('postImage').click()"><i class="fas fa-camera"></i></button>
+                    <button class="compose-tool" onclick="document.getElementById('postVideo').click()"><i class="fas fa-clapperboard"></i></button>
+                    <button class="compose-tool" onclick="addPollToCompose()"><i class="fas fa-square-poll-vertical"></i></button>
+                    <button class="compose-tool" onclick="toggleSchedulePicker()"><i class="fas fa-calendar-clock"></i></button>
+                </div>
+                <div id="schedulePicker" class="schedule-picker">
+                    <input type="datetime-local" id="scheduleDate" class="chat-input" style="width: 100%;">
+                    <button onclick="schedulePost()" style="margin-top: 8px; background: #6c3ce1; color: white; border: none; padding: 8px; border-radius: 12px;">جدولة النشر</button>
+                </div>
+                <div id="pollBuilder" style="display: none; margin-top: 12px;">
+                    <input type="text" id="pollQuestion" placeholder="سؤال التصويت..." class="chat-input" style="width: 100%; margin-bottom: 8px;">
+                    <input type="text" id="pollOption1" placeholder="خيار 1" class="chat-input" style="width: 100%; margin-bottom: 4px;">
+                    <input type="text" id="pollOption2" placeholder="خيار 2" class="chat-input" style="width: 100%; margin-bottom: 4px;">
+                    <button onclick="addPollOption()" style="background: none; border: 1px solid #6c3ce1; color: #6c3ce1; padding: 4px 8px; border-radius: 8px;">+ إضافة خيار</button>
+                </div>
+                <input type="file" id="postImage" accept="image/*" style="display:none" onchange="previewMedia(this, 'image')">
+                <input type="file" id="postVideo" accept="video/*" style="display:none" onchange="previewMedia(this, 'video')">
+                <button id="publishPostBtn" onclick="createPost()" style="width: 100%; background: linear-gradient(135deg, #6c3ce1, #a78bfa); color: white; padding: 12px; border-radius: 12px; margin-top: 16px; font-weight: 600; border: none; cursor: pointer; transition: transform 0.1s;">مشاركة</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="commentsPanel" class="chat-panel">
+        <div class="chat-header"><h3 style="font-weight: 600;">التعليقات</h3><button onclick="closeComments()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button></div>
+        <div id="commentsList" class="chat-messages"></div>
+        <div class="chat-input-area"><input type="text" id="commentInput" class="chat-input" placeholder="أضف تعليقاً..."><button onclick="addComment()" class="chat-send-btn"><i class="fas fa-paper-plane"></i></button></div>
+    </div>
+
+    <div id="profilePanel" class="chat-panel">
+        <div class="chat-header"><h3 style="font-weight: 600;">الملف الشخصي</h3><button onclick="closeProfile()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button></div>
+        <div style="overflow-y: auto;">
+            <div id="profileCover" class="profile-cover"></div>
+            <div class="profile-avatar-wrapper"><div class="profile-avatar-large" id="profileAvatarLarge"><i class="fas fa-user text-5xl text-white flex items-center justify-center h-full"></i></div></div>
+            <div class="profile-info">
+                <div class="profile-name" id="profileName"></div>
+                <div class="profile-bio" id="profileBio"></div>
+                <div id="profileWebsite" class="profile-bio" style="color: #6c3ce1;"></div>
+                <div class="profile-stats">
+                    <div class="stat-item" onclick="openFollowersList('followers')"><div class="stat-number" id="profileFollowersCount">0</div><div>متابع</div></div>
+                    <div class="stat-item" onclick="openFollowersList('following')"><div class="stat-number" id="profileFollowingCount">0</div><div>يتابع</div></div>
+                    <div class="stat-item"><div class="stat-number" id="profilePostsCount">0</div><div>منشورات</div></div>
+                    <div class="stat-item" onclick="openProfileViews()"><div class="stat-number" id="profileViewsCount">0</div><div>مشاهدة</div></div>
+                </div>
+                <div id="profileButtons" class="profile-buttons"></div>
+            </div>
+            <div class="profile-tabs">
+                <button class="profile-tab active" onclick="loadProfilePosts(currentProfileUser)"><i class="fas fa-table-cells-large"></i> المنشورات</button>
+                <button class="profile-tab" onclick="loadProfileMedia(currentProfileUser)"><i class="fas fa-clapperboard"></i> الوسائط</button>
+                <button class="profile-tab" onclick="openSavedPosts()"><i class="fas fa-bookmark"></i> المحفوظة</button>
+            </div>
+            <div id="profilePostsGrid" class="profile-grid"></div>
+        </div>
+    </div>
+
+    <div id="editProfileModal" class="modal-overlay">
+        <div class="modal-content"><div style="text-align: center; margin-bottom: 20px;"><h3 style="font-weight: 600;">تعديل الملف الشخصي</h3></div>
+        <input type="text" id="editName" class="chat-input" style="width: 100%; margin-bottom: 12px;" placeholder="الاسم">
+        <textarea id="editBio" class="chat-input" style="width: 100%; min-height: 80px; margin-bottom: 12px;" placeholder="السيرة الذاتية..."></textarea>
+        <input type="url" id="editWebsite" class="chat-input" style="width: 100%; margin-bottom: 12px;" placeholder="رابط الموقع">
+        <div style="display: flex; gap: 10px;"><button class="profile-btn" onclick="closeEditProfileModal()">إلغاء</button><button class="profile-btn profile-btn-primary" onclick="saveProfileEdit()">حفظ</button></div></div>
+    </div>
+
+    <div id="chatPanel" class="chat-panel">
+        <div class="chat-header"><div style="display: flex; align-items: center; gap: 12px;"><div class="profile-avatar-large" id="chatAvatar" style="width: 40px; height: 40px;"></div><div><h3 id="chatUserName" style="font-weight: 600;">محادثة</h3><div id="chatLastSeen" class="last-seen"></div></div></div><div style="display: flex; gap: 12px;"><button class="chat-send-btn" onclick="startVideoCallWithCurrentUser()" style="color: #6c3ce1;"><i class="fas fa-video"></i></button><button onclick="closeChat()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button></div></div>
+        <div id="chatMessages" class="chat-messages"></div>
+        <div id="typingIndicator" class="typing-indicator" style="display: none;">✏️ جاري الكتابة...</div>
+        <div class="chat-input-area"><div id="recordingIndicator" class="recording-indicator" style="display: none;"><span>جاري التسجيل...</span></div><button class="chat-audio-btn" onclick="toggleVoiceRecording()"><i class="fas fa-microphone"></i></button><input type="file" id="chatImageInput" accept="image/*" style="display:none" onchange="sendChatImage(this)"><button class="chat-image-btn" onclick="document.getElementById('chatImageInput').click()"><i class="fas fa-image"></i></button><input type="text" id="chatMessageInput" class="chat-input" placeholder="اكتب رسالة..." onkeyup="onTyping()"><button class="chat-send-btn" onclick="sendChatMessage()"><i class="fas fa-paper-plane"></i></button></div>
+    </div>
+
+    <div id="conversationsPanel" class="chat-panel"><div class="chat-header"><h3 style="font-weight: 600;">الرسائل</h3><button onclick="closeConversations()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button></div><div id="conversationsList" style="padding: 12px;"></div></div>
+    <div id="followersPanel" class="chat-panel"><div class="chat-header"><h3 id="followersTitle" style="font-weight: 600;">المتابعون</h3><button onclick="closeFollowers()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button></div><div id="followersList" style="padding: 12px;"></div></div>
+    <div id="notificationsPanel" class="chat-panel"><div class="chat-header"><h3 style="font-weight: 600;">الإشعارات</h3><button onclick="closeNotifications()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button></div><div id="notificationsList" style="padding: 12px;"></div></div>
+    <div id="searchPanel" class="chat-panel"><div class="chat-header"><h3 style="font-weight: 600;">بحث</h3><button onclick="closeSearch()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button></div><input type="text" id="searchInput" class="chat-input" style="margin: 12px; width: calc(100% - 24px);" placeholder="بحث عن مستخدمين أو هاشتاجات..." onkeyup="searchAll()"><div id="searchResults" style="padding: 12px;"></div></div>
+    <div id="storiesPanel" class="chat-panel"><div class="chat-header"><h3 style="font-weight: 600;">القصص</h3><button onclick="closeStories()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button></div><div id="storiesList" style="padding: 16px; display: flex; gap: 16px; overflow-x: auto;"></div></div>
+    
+    <div id="adminPanel" class="admin-panel">
+        <div class="chat-header"><h3 style="font-weight: 600;">🔧 لوحة التحكم</h3><button onclick="closeAdmin()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button></div>
+        <div class="admin-stats"><div class="admin-stat-card"><div class="admin-stat-number" id="adminUsersCount">0</div><div>مستخدمين</div></div><div class="admin-stat-card"><div class="admin-stat-number" id="adminPostsCount">0</div><div>منشورات</div></div><div class="admin-stat-card"><div class="admin-stat-number" id="adminCommentsCount">0</div><div>تعليقات</div></div></div>
+        
+        <div class="bad-words-manager">
+            <h4 style="font-weight: 600; margin-bottom: 12px;"><i class="fas fa-ban"></i> 🚫 إدارة الكلمات الممنوعة</h4>
+            <div id="badWordsManagerList" style="margin-bottom: 12px;"></div>
+            <div class="add-bad-word-input">
+                <input type="text" id="newBadWordInput" placeholder="اكتب كلمة جديدة...">
+                <button onclick="addBadWord()" style="background: #6c3ce1; color: white; border: none; padding: 8px 16px; border-radius: 12px; cursor: pointer;">➕ إضافة</button>
+            </div>
+            <p style="font-size: 11px; color: #8e8e9e; margin-top: 8px;">💡 ملاحظة: الكلمات الممنوعة تمنع من النشر والتعليق والرسائل الخاصة</p>
+        </div>
+        
+        <div style="padding: 16px;">
+            <h4 style="font-weight: 600; margin-bottom: 12px;"><i class="fas fa-users"></i> إدارة المستخدمين</h4>
+            <div id="adminUsersList"></div>
+        </div>
+        <div style="padding: 16px;">
+            <h4 style="font-weight: 600; margin-bottom: 12px;"><i class="fas fa-newspaper"></i> أحدث المنشورات</h4>
+            <div id="adminPostsList"></div>
+        </div>
+    </div>
+
+    <div id="savedPostsPanel" class="chat-panel"><div class="chat-header"><h3 style="font-weight: 600;">📌 المنشورات المحفوظة</h3><button onclick="closeSavedPosts()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button></div><div id="savedPostsGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 8px;"></div></div>
+    <div id="profileViewsPanel" class="chat-panel"><div class="chat-header"><h3 style="font-weight: 600;">👁️ من شاهد ملفك</h3><button onclick="closeProfileViews()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button></div><div id="profileViewsList" style="padding: 12px;"></div></div>
+    
+    <div id="reportModal" class="modal-overlay">
+        <div class="modal-content"><h3 style="font-weight: 600; margin-bottom: 16px;">🚨 الإبلاغ</h3>
+        <div id="reportReasons"><div class="report-reason" onclick="selectReportReason(this, 'محتوى غير لائق')">محتوى غير لائق</div><div class="report-reason" onclick="selectReportReason(this, 'تحرش')">تحرش</div><div class="report-reason" onclick="selectReportReason(this, 'عنف')">عنف</div><div class="report-reason" onclick="selectReportReason(this, 'سب وقذف')">سب وقذف</div><div class="report-reason" onclick="selectReportReason(this, 'معلومات مضللة')">معلومات مضللة</div></div>
+        <button class="profile-btn profile-btn-primary" onclick="submitReport()" style="margin-top: 16px;">إرسال</button><button class="profile-btn" onclick="closeReportModal()">إلغاء</button></div>
+    </div>
+
+    <div id="imageViewerModal" class="image-viewer-modal" onclick="closeImageViewer()">
+        <div class="image-viewer-close" onclick="closeImageViewer()">&times;</div>
+        <button class="image-viewer-prev" onclick="event.stopPropagation(); prevImage()">&#10094;</button>
+        <img id="viewerImage" src="">
+        <button class="image-viewer-next" onclick="event.stopPropagation(); nextImage()">&#10095;</button>
+    </div>
+
+    <div id="videoCallModal" class="video-call-modal">
+        <div class="video-container"><div id="remoteVideo"></div><div id="localVideo"></div></div>
+        <div class="call-controls"><button class="call-end-btn" onclick="endVideoCall()"><i class="fas fa-phone-slash"></i></button></div>
+    </div>
+</div>
+
+<div id="customToast"></div>
+
+<script src="firebase-config.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>
